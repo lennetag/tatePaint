@@ -1,0 +1,383 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #f5f5f5;
+    overflow: hidden;
+    cursor: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Canvas */
+#canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    cursor: none;
+}
+
+/* Toolbar */
+.toolbar {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border-radius: 16px;
+    padding: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.toolbar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toolbar-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 5px 0;
+}
+
+/* Tool Buttons */
+.tool-btn {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #333;
+}
+
+.tool-btn:hover {
+    border-color: #999;
+    background: #f9f9f9;
+}
+
+.tool-btn.selected {
+    border-color: #333;
+    background: #f0f0f0;
+}
+
+.tool-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+    border-color: #e0e0e0;
+    background: white;
+}
+
+.tool-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Context Overlays */
+.context-overlay {
+    position: fixed;
+    left: 110px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 99;
+}
+
+.context-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.overlay-content {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Color Picker Overlay */
+.color-picker-overlay {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.color-picker-overlay .color-row {
+    display: flex;
+    gap: 10px;
+}
+
+/* Pen Size Overlay */
+.pen-size-overlay {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.color-row {
+    display: flex;
+    gap: 10px;
+}
+
+.size-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* Eraser Size Overlay */
+.eraser-size-overlay {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Save Confirmation Overlay */
+.save-confirmation-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.save-confirm-btn {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #4CAF50;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #4CAF50;
+}
+
+.save-confirm-btn:hover {
+    background: #4CAF50;
+    color: white;
+}
+
+.save-confirm-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Color Circles */
+.color-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.color-circle:hover {
+    transform: scale(1.1);
+}
+
+.color-circle.selected {
+    border-color: #333;
+    transform: scale(1.1);
+}
+
+.color-circle[data-color="#D88EB8"] { background-color: #D88EB8; }
+.color-circle[data-color="#9B7EBE"] { background-color: #9B7EBE; }
+.color-circle[data-color="#5B8DBE"] { background-color: #5B8DBE; }
+.color-circle[data-color="#6BC47E"] { background-color: #6BC47E; }
+.color-circle[data-color="#F4CE6A"] { background-color: #F4CE6A; }
+.color-circle[data-color="#E9844F"] { background-color: #E9844F; }
+.color-circle[data-color="#D95959"] { background-color: #D95959; }
+.color-circle[data-color="#FFFFFF"] { 
+    background-color: #FFFFFF; 
+    border: 3px solid #e0e0e0;
+}
+.color-circle[data-color="#FFFFFF"].selected {
+    border-color: #333;
+}
+.color-circle[data-color="#000000"] { background-color: #000000; }
+
+/* Brush Size Buttons */
+.brush-size-btn {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.brush-size-btn:hover {
+    border-color: #999;
+    background: #f9f9f9;
+}
+
+.brush-size-btn.selected {
+    border-color: #333;
+    background: #f0f0f0;
+}
+
+/* Size indicators inside brush buttons */
+.brush-size-btn::after {
+    content: '';
+    background: #333;
+    border-radius: 50%;
+}
+
+.brush-size-btn[data-size="2"]::after {
+    width: 2px;
+    height: 2px;
+}
+
+.brush-size-btn[data-size="4"]::after {
+    width: 4px;
+    height: 4px;
+}
+
+.brush-size-btn[data-size="8"]::after {
+    width: 8px;
+    height: 8px;
+}
+
+.brush-size-btn[data-size="16"]::after {
+    width: 16px;
+    height: 16px;
+}
+
+.brush-size-btn[data-size="32"]::after {
+    width: 32px;
+    height: 32px;
+}
+
+/* Cursor Preview */
+#cursorPreview {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(255, 0, 0, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    display: none;
+}
+
+#cursorPreview.fill-cursor {
+    background: rgba(255, 0, 0, 0.8);
+}
+
+#cursorPreview.eraser-cursor {
+    background: rgba(128, 128, 128, 0.5);
+    border: 1px dashed #666;
+}
+
+/* Tool icons in cursor preview */
+.bucket-icon,
+.eraser-icon {
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #333;
+}
+
+/* Replay Button */
+#replayButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+#replayButton:hover {
+    background: #333;
+    color: white;
+}
+
+#replayButton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .toolbar {
+        left: 50%;
+        top: 20px;
+        transform: translateX(-50%);
+        flex-direction: row;
+        padding: 10px 15px;
+    }
+    
+    .toolbar-section {
+        flex-direction: row;
+    }
+    
+    .toolbar-divider {
+        width: 1px;
+        height: auto;
+        margin: 0 10px;
+    }
+    
+    .tool-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .context-overlay {
+        left: 50%;
+        top: 100px;
+        transform: translateX(-50%);
+    }
+    
+    #canvas {
+        top: 55%;
+    }
+    
+    .color-circle {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .brush-size-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    #replayButton {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}

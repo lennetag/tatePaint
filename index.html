@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TatePaint</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Main Toolbar -->
+    <div id="toolbar" class="toolbar">
+        <!-- Tools Section -->
+        <div class="toolbar-section">
+            <button class="tool-btn selected" data-tool="pen" title="Pen Tool">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                </svg>
+            </button>
+            <button class="tool-btn" data-tool="fill" title="Fill Tool">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10L10 5.21 14.79 10H5.21zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5z"/>
+                </svg>
+            </button>
+            <button class="tool-btn" data-tool="eraser" title="Eraser">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l9.19-9.19c.79-.78 2.05-.78 2.84 0zM4.22 15.58l2.83 2.83c.39.39 1.02.39 1.41 0l9.19-9.19c.39-.39.39-1.02 0-1.41l-2.83-2.83c-.39-.39-1.02-.39-1.41 0L4.22 14.17c-.39.39-.39 1.02 0 1.41zM3 21h18v2H3v-2z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="toolbar-divider"></div>
+        
+        <!-- Undo/Redo Section -->
+        <div class="toolbar-section">
+            <button class="tool-btn" id="undoBtn" title="Undo" disabled>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/>
+                </svg>
+            </button>
+            <button class="tool-btn" id="redoBtn" title="Redo" disabled>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="toolbar-divider"></div>
+        
+        <!-- Save Section -->
+        <div class="toolbar-section">
+            <button class="tool-btn" id="saveBtn" title="Save">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Color Picker Overlay -->
+    <div id="colorOverlay" class="context-overlay">
+        <div class="overlay-content color-picker-overlay">
+            <div class="color-row">
+                <div class="color-circle" data-color="#D88EB8" title="Pink"></div>
+                <div class="color-circle" data-color="#9B7EBE" title="Purple"></div>
+                <div class="color-circle" data-color="#5B8DBE" title="Blue"></div>
+                <div class="color-circle" data-color="#6BC47E" title="Green"></div>
+                <div class="color-circle" data-color="#F4CE6A" title="Yellow"></div>
+                <div class="color-circle" data-color="#E9844F" title="Orange"></div>
+                <div class="color-circle" data-color="#D95959" title="Red"></div>
+                <div class="color-circle" data-color="#FFFFFF" title="White"></div>
+                <div class="color-circle" data-color="#000000" title="Black"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pen Size Overlay -->
+    <div id="penOverlay" class="context-overlay pen-overlay">
+        <div class="overlay-content pen-size-overlay">
+            <div class="color-row">
+                <div class="color-circle" data-color="#D88EB8" title="Pink"></div>
+                <div class="color-circle" data-color="#9B7EBE" title="Purple"></div>
+                <div class="color-circle" data-color="#5B8DBE" title="Blue"></div>
+                <div class="color-circle" data-color="#6BC47E" title="Green"></div>
+                <div class="color-circle" data-color="#F4CE6A" title="Yellow"></div>
+                <div class="color-circle" data-color="#E9844F" title="Orange"></div>
+                <div class="color-circle" data-color="#D95959" title="Red"></div>
+                <div class="color-circle" data-color="#FFFFFF" title="White"></div>
+                <div class="color-circle" data-color="#000000" title="Black"></div>
+            </div>
+            <div class="size-row">
+                <button class="brush-size-btn" data-size="2" title="2px"></button>
+                <button class="brush-size-btn selected" data-size="4" title="4px"></button>
+                <button class="brush-size-btn" data-size="8" title="8px"></button>
+                <button class="brush-size-btn" data-size="16" title="16px"></button>
+                <button class="brush-size-btn" data-size="32" title="32px"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eraser Size Overlay -->
+    <div id="eraserOverlay" class="context-overlay eraser-overlay">
+        <div class="overlay-content eraser-size-overlay">
+            <div class="size-row">
+                <button class="brush-size-btn" data-size="2" title="2px"></button>
+                <button class="brush-size-btn selected" data-size="4" title="4px"></button>
+                <button class="brush-size-btn" data-size="8" title="8px"></button>
+                <button class="brush-size-btn" data-size="16" title="16px"></button>
+                <button class="brush-size-btn" data-size="32" title="32px"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Confirmation Overlay -->
+    <div id="saveOverlay" class="context-overlay save-overlay">
+        <div class="overlay-content save-confirmation-overlay">
+            <button class="save-confirm-btn" id="saveConfirmBtn" title="Confirm Save">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    <div id="cursorPreview"></div>
+    <button id="replayButton">Replay ▶</button>
+
+    <script src="script.js"></script>
+</body>
+</html>
