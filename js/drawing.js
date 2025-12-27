@@ -6,6 +6,9 @@ import {
 import { floodFill } from './utils.js';
 import { saveCanvasState } from './undo-redo.js';
 
+// Track mouse button state globally to handle mouse leaving/entering canvas
+let isMouseDown = false;
+
 /**
  * Grid snapping function - snaps coordinates to grid subdivisions based on PEN_SIZE
  */
@@ -61,6 +64,8 @@ export function interpolatePoints(x0, y0, x1, y1) {
 export function startDrawing(e) {
     if (state.isReplaying) return;
     
+    isMouseDown = true;
+    
     // Close overlays when starting to draw
     if (window.closeAllOverlays) {
         window.closeAllOverlays();
@@ -72,6 +77,10 @@ export function startDrawing(e) {
     const scaleY = canvas.height / rect.height;
     let x = Math.floor((e.clientX - rect.left) * scaleX);
     let y = Math.floor((e.clientY - rect.top) * scaleY);
+    
+    // Clamp coordinates to canvas bounds
+    x = Math.max(0, Math.min(x, canvas.width - 1));
+    y = Math.max(0, Math.min(y, canvas.height - 1));
     
     // Apply grid snapping if enabled
     const snapped = snapToGrid(x, y);
@@ -123,6 +132,8 @@ export function startDrawing(e) {
  * Stop drawing
  */
 export function stopDrawing() {
+    isMouseDown = false;
+    
     if (state.isDrawing && state.currentStroke && state.currentStroke.length > 0) {
         state.strokes.push([...state.currentStroke]);
         // Record drawing stroke action (use first point's timestamp for chronological ordering)
@@ -141,7 +152,30 @@ export function stopDrawing() {
  * Draw on canvas
  */
 export function draw(e) {
-    if (!state.isDrawing || (state.currentTool !== 'pen' && state.currentTool !== 'eraser')) return;
+    // Only draw if mouse is down (handles re-entering canvas while drawing)
+    if (!isMouseDown || (state.currentTool !== 'pen' && state.currentTool !== 'eraser')) {
+        // If mouse re-enters while button is still down, resume drawing
+        if (isMouseDown && !state.isDrawing && (state.currentTool === 'pen' || state.currentTool === 'eraser')) {
+            // Resume drawing by treating this as a new start
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let x = Math.floor((e.clientX - rect.left) * scaleX);
+            let y = Math.floor((e.clientY - rect.top) * scaleY);
+            
+            // Clamp coordinates to canvas bounds
+            x = Math.max(0, Math.min(x, canvas.width - 1));
+            y = Math.max(0, Math.min(y, canvas.height - 1));
+            
+            const snapped = snapToGrid(x, y);
+            state.isDrawing = true;
+            state.currentStroke = [];
+            state.lastX = snapped.x;
+            state.lastY = snapped.y;
+        } else {
+            return;
+        }
+    }
 
     const rect = canvas.getBoundingClientRect();
     // Scale from screen coordinates to canvas coordinates
@@ -149,6 +183,10 @@ export function draw(e) {
     const scaleY = canvas.height / rect.height;
     let x = Math.floor((e.clientX - rect.left) * scaleX);
     let y = Math.floor((e.clientY - rect.top) * scaleY);
+    
+    // Clamp coordinates to canvas bounds
+    x = Math.max(0, Math.min(x, canvas.width - 1));
+    y = Math.max(0, Math.min(y, canvas.height - 1));
     
     // Apply grid snapping if enabled
     const snapped = snapToGrid(x, y);
@@ -180,13 +218,18 @@ export function draw(e) {
         }
     } else {
         // Normal drawing with interpolation when grid is off
+        // Use interpolation to ensure smooth drawing even with fast movement
         const points = interpolatePoints(state.lastX, state.lastY, x, y);
 
         points.forEach(point => {
+            // Clamp each interpolated point to canvas bounds
+            const clampedX = Math.max(0, Math.min(point.x, canvas.width - 1));
+            const clampedY = Math.max(0, Math.min(point.y, canvas.height - 1));
+            
             const strokeData = {
                 timestamp: Date.now(),
-                x_coord: point.x,
-                y_coord: point.y,
+                x_coord: clampedX,
+                y_coord: clampedY,
                 pen_size: state.PEN_SIZE,
                 colour_applied: state.PEN_COLOR,
                 is_erasing: state.isErasing,
@@ -196,7 +239,7 @@ export function draw(e) {
             state.currentStroke.push(strokeData);
 
             ctx.fillStyle = state.PEN_COLOR;
-            ctx.fillRect(point.x - state.PEN_SIZE / 2, point.y - state.PEN_SIZE / 2, state.PEN_SIZE, state.PEN_SIZE);
+            ctx.fillRect(clampedX - state.PEN_SIZE / 2, clampedY - state.PEN_SIZE / 2, state.PEN_SIZE, state.PEN_SIZE);
         });
 
         state.lastX = x;
@@ -213,7 +256,13 @@ export function setupDrawingEvents() {
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseleave', stopDrawing);
+    // Don't stop drawing on mouseleave - let it continue when mouse re-enters
+    // Also handle mouseup globally to catch mouseup events outside canvas
+    document.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            stopDrawing();
+        }
+    });
 
     // Touch events for mobile
     canvas.addEventListener('touchstart', (e) => {

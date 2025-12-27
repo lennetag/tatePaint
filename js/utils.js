@@ -1,6 +1,6 @@
 // Utility functions
 
-import { state } from './state.js';
+import { state, ctx } from './state.js';
 
 /**
  * Convert hex color to RGB object
@@ -18,11 +18,17 @@ export function hexToRgb(hex) {
  * Flood fill algorithm (optimized for speed - all cells updated at once)
  */
 export function floodFill(startX, startY, fillColor, targetCtx = null, canvasWidth = null, canvasHeight = null) {
-    const ctx = targetCtx || window.ctx;
+    // Use provided context or default to imported ctx
+    const fillCtx = targetCtx || ctx;
+    if (!fillCtx) {
+        console.error('Canvas context not available for flood fill');
+        return;
+    }
+    
     const width = canvasWidth || state.CANVAS_WIDTH;
     const height = canvasHeight || state.CANVAS_HEIGHT;
     
-    const imageData = ctx.getImageData(0, 0, width, height);
+    const imageData = fillCtx.getImageData(0, 0, width, height);
     const pixels = imageData.data;
     
     const startPos = (startY * width + startX) * 4;
@@ -76,7 +82,7 @@ export function floodFill(startX, startY, fillColor, targetCtx = null, canvasWid
     }
     
     // Update canvas once with all changes
-    ctx.putImageData(imageData, 0, 0);
+    fillCtx.putImageData(imageData, 0, 0);
 }
 
 /**
