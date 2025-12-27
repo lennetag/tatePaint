@@ -108,12 +108,44 @@ export function positionOverlayForTool(tool) {
         overlay.style.top = `${toolbarRect.bottom + 2}px`;
         overlay.style.left = `${toolbarRect.left}px`;
         overlay.style.transform = 'none';
+        
+        // After positioning, check and adjust if needed
+        requestAnimationFrame(() => {
+            const overlayRect = overlay.getBoundingClientRect();
+            let topPos = parseFloat(overlay.style.top);
+            let leftPos = parseFloat(overlay.style.left);
+            
+            if (topPos + overlayRect.height > window.innerHeight) {
+                topPos = Math.max(2, window.innerHeight - overlayRect.height - 2);
+                overlay.style.top = `${topPos}px`;
+            }
+            if (leftPos + overlayRect.width > window.innerWidth) {
+                leftPos = Math.max(2, window.innerWidth - overlayRect.width - 2);
+                overlay.style.left = `${leftPos}px`;
+            }
+        });
     } else {
         // Desktop: position to the right of toolbar, vertically aligned
         const overlayTop = iconCenterY - overlayPadding - (topRowHeight / 2);
         overlay.style.top = `${overlayTop}px`;
         overlay.style.left = `${toolbarRect.right + 1}px`;
         overlay.style.transform = 'none';
+        
+        // After positioning, check and adjust if needed
+        requestAnimationFrame(() => {
+            const overlayRect = overlay.getBoundingClientRect();
+            let topPos = parseFloat(overlay.style.top);
+            let leftPos = parseFloat(overlay.style.left);
+            
+            if (topPos < 2) {
+                overlay.style.top = '2px';
+            } else if (topPos + overlayRect.height > window.innerHeight) {
+                overlay.style.top = `${Math.max(2, window.innerHeight - overlayRect.height - 2)}px`;
+            }
+            if (leftPos + overlayRect.width > window.innerWidth) {
+                overlay.style.left = `${Math.max(2, window.innerWidth - overlayRect.width - 2)}px`;
+            }
+        });
     }
 }
 
@@ -144,12 +176,44 @@ export function positionSaveOverlay() {
         saveOverlay.style.top = `${toolbarRect.bottom + 2}px`;
         saveOverlay.style.left = `${toolbarRect.left}px`;
         saveOverlay.style.transform = 'none';
+        
+        // After positioning, check and adjust if needed
+        requestAnimationFrame(() => {
+            const overlayRect = saveOverlay.getBoundingClientRect();
+            let topPos = parseFloat(saveOverlay.style.top);
+            let leftPos = parseFloat(saveOverlay.style.left);
+            
+            if (topPos + overlayRect.height > window.innerHeight) {
+                topPos = Math.max(2, window.innerHeight - overlayRect.height - 2);
+                saveOverlay.style.top = `${topPos}px`;
+            }
+            if (leftPos + overlayRect.width > window.innerWidth) {
+                leftPos = Math.max(2, window.innerWidth - overlayRect.width - 2);
+                saveOverlay.style.left = `${leftPos}px`;
+            }
+        });
     } else {
         // Desktop: position to the right of toolbar
         const overlayTop = iconCenterY - overlayPadding - (buttonHeight / 2);
         saveOverlay.style.top = `${overlayTop}px`;
         saveOverlay.style.left = `${toolbarRect.right + 1}px`;
         saveOverlay.style.transform = 'none';
+        
+        // After positioning, check and adjust if needed
+        requestAnimationFrame(() => {
+            const overlayRect = saveOverlay.getBoundingClientRect();
+            let topPos = parseFloat(saveOverlay.style.top);
+            let leftPos = parseFloat(saveOverlay.style.left);
+            
+            if (topPos < 2) {
+                saveOverlay.style.top = '2px';
+            } else if (topPos + overlayRect.height > window.innerHeight) {
+                saveOverlay.style.top = `${Math.max(2, window.innerHeight - overlayRect.height - 2)}px`;
+            }
+            if (leftPos + overlayRect.width > window.innerWidth) {
+                saveOverlay.style.left = `${Math.max(2, window.innerWidth - overlayRect.width - 2)}px`;
+            }
+        });
     }
 }
 

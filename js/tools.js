@@ -2,7 +2,7 @@
 
 import {
     isMainPage, toolButtons, allColorCircles, cursorPreview, canvas,
-    state, colorOverlay
+    state, colorOverlay, gridProjection, gridProjectionCanvas, gridProjectionCtx, ctx
 } from './state.js';
 import { showPenOverlay, showColorOverlay, showEraserOverlay, closeAllOverlays } from './overlays.js';
 
@@ -214,6 +214,175 @@ export function updateCursorPreview() {
 }
 
 /**
+ * Calculate average brightness of surrounding grid cells
+ */
+function getAverageBrightness(canvasX, canvasY, gridSize) {
+    const sampleSize = gridSize;
+    const halfSize = Math.floor(sampleSize / 2);
+    let totalR = 0, totalG = 0, totalB = 0, count = 0;
+    
+    // Sample surrounding cells
+    for (let dy = -halfSize; dy <= halfSize; dy += gridSize) {
+        for (let dx = -halfSize; dx <= halfSize; dx += gridSize) {
+            const x = canvasX + dx;
+            const y = canvasY + dy;
+            
+            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                const imageData = ctx.getImageData(x, y, 1, 1);
+                totalR += imageData.data[0];
+                totalG += imageData.data[1];
+                totalB += imageData.data[2];
+                count++;
+            }
+        }
+    }
+    
+    if (count === 0) return 255; // Default to white if no samples
+    
+    const avgR = totalR / count;
+    const avgG = totalG / count;
+    const avgB = totalB / count;
+    
+    // Calculate luminance (perceived brightness)
+    return (0.299 * avgR + 0.587 * avgG + 0.114 * avgB);
+}
+
+/**
+ * Update grid projection overlay
+ */
+function updateGridProjection(e) {
+    if (!gridProjection || !gridProjectionCanvas || !gridProjectionCtx || !canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = Math.floor((e.clientX - rect.left) * scaleX);
+    const canvasY = Math.floor((e.clientY - rect.top) * scaleY);
+    
+    // Snap to grid
+    const gridSize = state.PEN_SIZE;
+    const snappedX = Math.floor(canvasX / gridSize) * gridSize;
+    const snappedY = Math.floor(canvasY / gridSize) * gridSize;
+    
+    // Calculate average brightness of surrounding cells
+    const avgBrightness = getAverageBrightness(snappedX, snappedY, gridSize);
+    
+    // Choose grid color with good contrast
+    // Use a more visible color with slight transparency for the outline
+    const isDark = avgBrightness <= 128;
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+    const outlineColor = isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+    
+    // Calculate the screen size of one grid cell
+    const screenCellSizeX = gridSize / scaleX;
+    const screenCellSizeY = gridSize / scaleY;
+    
+    // Set overlay size to show multiple grid cells (5x5 grid with padding)
+    const cellsPerSide = 5;
+    const paddingScreen = 20; // padding in screen pixels
+    const overlaySizeX = (cellsPerSide * screenCellSizeX) + paddingScreen;
+    const overlaySizeY = (cellsPerSide * screenCellSizeY) + paddingScreen;
+    
+    // Set canvas size for high-DPI rendering
+    const dpr = window.devicePixelRatio || 1;
+    gridProjectionCanvas.width = overlaySizeX * dpr;
+    gridProjectionCanvas.height = overlaySizeY * dpr;
+    gridProjectionCanvas.style.width = `${overlaySizeX}px`;
+    gridProjectionCanvas.style.height = `${overlaySizeY}px`;
+    gridProjection.style.width = `${overlaySizeX}px`;
+    gridProjection.style.height = `${overlaySizeY}px`;
+    
+    // Scale context for high-DPI
+    gridProjectionCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    
+    // Clear and draw grid with radial fade
+    gridProjectionCtx.clearRect(0, 0, overlaySizeX, overlaySizeY);
+    
+    // Create radial gradient mask - keep center more visible
+    const centerX = overlaySizeX / 2;
+    const centerY = overlaySizeY / 2;
+    const maxRadius = Math.max(overlaySizeX, overlaySizeY) / 2;
+    const gradient = gridProjectionCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.7)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    // Offset for padding
+    const offsetX = paddingScreen / 2;
+    const offsetY = paddingScreen / 2;
+    
+    // Draw outline first (for contrast)
+    gridProjectionCtx.strokeStyle = outlineColor;
+    gridProjectionCtx.lineWidth = 3;
+    
+    // Draw vertical outline lines
+    for (let i = 0; i <= cellsPerSide; i++) {
+        const x = offsetX + (i * screenCellSizeX);
+        gridProjectionCtx.beginPath();
+        gridProjectionCtx.moveTo(x, offsetY);
+        gridProjectionCtx.lineTo(x, overlaySizeY - offsetY);
+        gridProjectionCtx.stroke();
+    }
+    
+    // Draw horizontal outline lines
+    for (let i = 0; i <= cellsPerSide; i++) {
+        const y = offsetY + (i * screenCellSizeY);
+        gridProjectionCtx.beginPath();
+        gridProjectionCtx.moveTo(offsetX, y);
+        gridProjectionCtx.lineTo(overlaySizeX - offsetX, y);
+        gridProjectionCtx.stroke();
+    }
+    
+    // Draw main grid lines on top
+    gridProjectionCtx.strokeStyle = gridColor;
+    gridProjectionCtx.lineWidth = 1.5;
+    
+    // Draw vertical lines
+    for (let i = 0; i <= cellsPerSide; i++) {
+        const x = offsetX + (i * screenCellSizeX);
+        gridProjectionCtx.beginPath();
+        gridProjectionCtx.moveTo(x, offsetY);
+        gridProjectionCtx.lineTo(x, overlaySizeY - offsetY);
+        gridProjectionCtx.stroke();
+    }
+    
+    // Draw horizontal lines
+    for (let i = 0; i <= cellsPerSide; i++) {
+        const y = offsetY + (i * screenCellSizeY);
+        gridProjectionCtx.beginPath();
+        gridProjectionCtx.moveTo(offsetX, y);
+        gridProjectionCtx.lineTo(overlaySizeX - offsetX, y);
+        gridProjectionCtx.stroke();
+    }
+    
+    // Apply radial fade mask
+    gridProjectionCtx.globalCompositeOperation = 'destination-in';
+    gridProjectionCtx.fillStyle = gradient;
+    gridProjectionCtx.fillRect(0, 0, overlaySizeX, overlaySizeY);
+    gridProjectionCtx.globalCompositeOperation = 'source-over';
+    
+    // Position overlay so the center cell aligns with the snapped grid position
+    // Convert snapped canvas coordinates to screen coordinates
+    const screenSnappedX = rect.left + (snappedX / scaleX);
+    const screenSnappedY = rect.top + (snappedY / scaleY);
+    
+    // The overlay uses transform: translate(-50%, -50%), so left/top positions the center
+    // The center cell (index 2) starts at: offsetX + centerCellIndex * screenCellSizeX
+    const centerCellIndex = Math.floor(cellsPerSide / 2);
+    const centerCellStartX = offsetX + (centerCellIndex * screenCellSizeX);
+    const centerCellStartY = offsetY + (centerCellIndex * screenCellSizeY);
+    
+    // Offset from overlay center to center cell top-left
+    const offsetFromCenterX = centerCellStartX - (overlaySizeX / 2);
+    const offsetFromCenterY = centerCellStartY - (overlaySizeY / 2);
+    
+    // Position overlay: set center at snapped position minus the offset
+    gridProjection.style.left = `${screenSnappedX - offsetFromCenterX}px`;
+    gridProjection.style.top = `${screenSnappedY - offsetFromCenterY}px`;
+    gridProjection.classList.add('show');
+}
+
+/**
  * Setup tool event listeners
  */
 export function setupTools() {
@@ -264,6 +433,11 @@ export function setupTools() {
             // Close any open overlays when toggling
             closeAllOverlays();
             
+            // Hide grid projection if disabled
+            if (!state.gridEnabled && gridProjection) {
+                gridProjection.classList.remove('show');
+            }
+            
             console.log(`Grid snapping is now: ${state.gridEnabled ? 'enabled' : 'disabled'}`);
         });
     }
@@ -273,15 +447,25 @@ export function setupTools() {
         canvas.addEventListener('mouseenter', () => {
             cursorPreview.style.display = 'block';
             updateCursorPreview();
+            document.body.style.cursor = 'none';
         });
 
         canvas.addEventListener('mouseleave', () => {
             cursorPreview.style.display = 'none';
+            document.body.style.cursor = 'pointer';
+            // Hide grid projection when leaving canvas
+            if (gridProjection) {
+                gridProjection.classList.remove('show');
+            }
         });
 
         canvas.addEventListener('mousemove', (e) => {
             cursorPreview.style.left = `${e.clientX}px`;
             cursorPreview.style.top = `${e.clientY}px`;
+            // Update grid projection if enabled
+            if (state.gridEnabled && gridProjection) {
+                updateGridProjection(e);
+            }
         });
     }
 }

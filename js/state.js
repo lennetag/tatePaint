@@ -44,6 +44,7 @@ export let canvas, ctx, saveBtn, saveConfirmBtn, cursorPreview;
 export let undoBtn, redoBtn, toolButtons;
 export let colorOverlay, penOverlay, eraserOverlay, saveOverlay;
 export let allColorCircles, brushSizeButtons;
+export let gridProjection, gridProjectionCanvas, gridProjectionCtx;
 
 // Initialize DOM element references
 if (isMainPage) {
@@ -52,6 +53,11 @@ if (isMainPage) {
     saveBtn = document.getElementById('saveBtn');
     saveConfirmBtn = document.getElementById('saveConfirmBtn');
     cursorPreview = document.getElementById('cursorPreview');
+    gridProjection = document.getElementById('gridProjection');
+    gridProjectionCanvas = document.getElementById('gridProjectionCanvas');
+    if (gridProjectionCanvas) {
+        gridProjectionCtx = gridProjectionCanvas.getContext('2d');
+    }
 
     // Toolbar elements
     undoBtn = document.getElementById('undoBtn');
