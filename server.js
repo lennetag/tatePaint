@@ -20,6 +20,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Serve view.html for the gallery route
+app.get('/view.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'view.html'));
+});
+
 // Start the server
 app.listen(PORT, () => {
     console.log('🎨 TatePaint server running');

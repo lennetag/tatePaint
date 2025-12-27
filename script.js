@@ -1,31 +1,42 @@
-// Canvas setup
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const saveBtn = document.getElementById('saveBtn');
-const saveConfirmBtn = document.getElementById('saveConfirmBtn');
-const replayButton = document.getElementById('replayButton');
-const cursorPreview = document.getElementById('cursorPreview');
+// Check if we're on the main drawing page (index.html) or gallery page (view.html)
+const isMainPage = document.getElementById('canvas') !== null;
 
-// Toolbar elements
-const undoBtn = document.getElementById('undoBtn');
-const redoBtn = document.getElementById('redoBtn');
-const toolButtons = document.querySelectorAll('.tool-btn[data-tool]');
+// Canvas setup (only on main page)
+let canvas, ctx, saveBtn, saveConfirmBtn, cursorPreview;
+let undoBtn, redoBtn, toolButtons;
+let colorOverlay, penOverlay, eraserOverlay, saveOverlay;
+let allColorCircles, brushSizeButtons;
 
-// Overlays
-const colorOverlay = document.getElementById('colorOverlay');
-const penOverlay = document.getElementById('penOverlay');
-const eraserOverlay = document.getElementById('eraserOverlay');
-const saveOverlay = document.getElementById('saveOverlay');
-const allColorCircles = document.querySelectorAll('.color-circle');
-const brushSizeButtons = document.querySelectorAll('.brush-size-btn');
+if (isMainPage) {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+    saveBtn = document.getElementById('saveBtn');
+    saveConfirmBtn = document.getElementById('saveConfirmBtn');
+    cursorPreview = document.getElementById('cursorPreview');
+
+    // Toolbar elements
+    undoBtn = document.getElementById('undoBtn');
+    redoBtn = document.getElementById('redoBtn');
+    toolButtons = document.querySelectorAll('.tool-btn[data-tool]');
+
+    // Overlays
+    colorOverlay = document.getElementById('colorOverlay');
+    penOverlay = document.getElementById('penOverlay');
+    eraserOverlay = document.getElementById('eraserOverlay');
+    saveOverlay = document.getElementById('saveOverlay');
+    allColorCircles = document.querySelectorAll('.color-circle');
+    brushSizeButtons = document.querySelectorAll('.brush-size-btn');
+}
 
 // Determine canvas size based on screen width
 const isMobile = window.innerWidth < 768;
 const CANVAS_WIDTH = isMobile ? 512 : 1024;
 const CANVAS_HEIGHT = 1024;
 
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+if (isMainPage && canvas) {
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+}
 
 // Drawing configuration
 let PEN_SIZE = 4;
@@ -52,10 +63,12 @@ let actionHistory = [];
 let undoStack = [];
 let redoStack = [];
 
-// Initialize canvas with white background
-ctx.fillStyle = 'white';
-ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-saveCanvasState();
+// Initialize canvas with white background (only on main page)
+if (isMainPage && ctx) {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    saveCanvasState();
+}
 
 // Helper function to save canvas state for undo/redo
 function saveCanvasState() {
@@ -88,8 +101,10 @@ function redo() {
     }
 }
 
-undoBtn.addEventListener('click', undo);
-redoBtn.addEventListener('click', redo);
+if (isMainPage && undoBtn && redoBtn) {
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
+}
 
 // Overlay management
 function closeAllOverlays() {
@@ -193,36 +208,48 @@ function showSaveOverlay() {
     saveOverlay.classList.add('show');
 }
 
-// Close overlays when mouse leaves overlay area
-colorOverlay.addEventListener('mouseleave', () => {
-    colorOverlay.classList.remove('show');
-});
-
-penOverlay.addEventListener('mouseleave', () => {
-    // Only close if not drawing
-    if (!isDrawing) {
-        penOverlay.classList.remove('show');
+// Close overlays when mouse leaves overlay area (only on main page)
+if (isMainPage) {
+    if (colorOverlay) {
+        colorOverlay.addEventListener('mouseleave', () => {
+            colorOverlay.classList.remove('show');
+        });
     }
-});
 
-eraserOverlay.addEventListener('mouseleave', () => {
-    // Only close if not drawing
-    if (!isDrawing) {
-        eraserOverlay.classList.remove('show');
+    if (penOverlay) {
+        penOverlay.addEventListener('mouseleave', () => {
+            // Only close if not drawing
+            if (!isDrawing) {
+                penOverlay.classList.remove('show');
+            }
+        });
     }
-});
 
-saveOverlay.addEventListener('mouseleave', () => {
-    saveOverlay.classList.remove('show');
-});
+    if (eraserOverlay) {
+        eraserOverlay.addEventListener('mouseleave', () => {
+            // Only close if not drawing
+            if (!isDrawing) {
+                eraserOverlay.classList.remove('show');
+            }
+        });
+    }
 
-// Tool selection
-toolButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const tool = btn.getAttribute('data-tool');
-        selectTool(tool);
+    if (saveOverlay) {
+        saveOverlay.addEventListener('mouseleave', () => {
+            saveOverlay.classList.remove('show');
+        });
+    }
+}
+
+// Tool selection (only on main page)
+if (isMainPage && toolButtons) {
+    toolButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tool = btn.getAttribute('data-tool');
+            selectTool(tool);
+        });
     });
-});
+}
 
 function selectTool(tool) {
     if (isReplaying) return;
@@ -282,13 +309,15 @@ function selectTool(tool) {
     updateCursorPreview();
 }
 
-// Color selection
-allColorCircles.forEach(circle => {
-    circle.addEventListener('click', () => {
-        const color = circle.getAttribute('data-color');
-        selectColor(color);
+// Color selection (only on main page)
+if (isMainPage && allColorCircles) {
+    allColorCircles.forEach(circle => {
+        circle.addEventListener('click', () => {
+            const color = circle.getAttribute('data-color');
+            selectColor(color);
+        });
     });
-});
+}
 
 // Helper function to update color selection UI
 function updateColorSelectionUI(color) {
@@ -427,20 +456,22 @@ function updateCursorPreview() {
     }
 }
 
-// Cursor preview functionality
-canvas.addEventListener('mouseenter', () => {
-    cursorPreview.style.display = 'block';
-    updateCursorPreview();
-});
+// Cursor preview functionality (only on main page)
+if (isMainPage && canvas && cursorPreview) {
+    canvas.addEventListener('mouseenter', () => {
+        cursorPreview.style.display = 'block';
+        updateCursorPreview();
+    });
 
-canvas.addEventListener('mouseleave', () => {
-    cursorPreview.style.display = 'none';
-});
+    canvas.addEventListener('mouseleave', () => {
+        cursorPreview.style.display = 'none';
+    });
 
-canvas.addEventListener('mousemove', (e) => {
-    cursorPreview.style.left = `${e.clientX}px`;
-    cursorPreview.style.top = `${e.clientY}px`;
-});
+    canvas.addEventListener('mousemove', (e) => {
+        cursorPreview.style.left = `${e.clientX}px`;
+        cursorPreview.style.top = `${e.clientY}px`;
+    });
+}
 
 // Helper function to interpolate points between two coordinates
 function interpolatePoints(x0, y0, x1, y1) {
@@ -549,41 +580,43 @@ function draw(e) {
     lastY = y;
 }
 
-// Mouse events
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseleave', stopDrawing);
+// Mouse events (only on main page)
+if (isMainPage && canvas) {
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
 
-// Touch events for mobile
-canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    lastX = Math.floor(touch.clientX - rect.left);
-    lastY = Math.floor(touch.clientY - rect.top);
-    const mouseEvent = new MouseEvent('mousedown', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        lastX = Math.floor(touch.clientX - rect.left);
+        lastY = Math.floor(touch.clientY - rect.top);
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
     });
-    canvas.dispatchEvent(mouseEvent);
-});
 
-canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent('mousemove', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
     });
-    canvas.dispatchEvent(mouseEvent);
-});
 
-canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const mouseEvent = new MouseEvent('mouseup', {});
-    canvas.dispatchEvent(mouseEvent);
-});
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent('mouseup', {});
+        canvas.dispatchEvent(mouseEvent);
+    });
+}
 
 // Flood fill algorithm (optimized for speed - all cells updated at once)
 function floodFill(startX, startY, fillColor) {
@@ -653,29 +686,40 @@ function hexToRgb(hex) {
     } : null;
 }
 
-// Save button functionality
-saveBtn.addEventListener('click', () => {
-    if (isReplaying) return;
-    showSaveOverlay();
-});
+// Save button functionality (only on main page)
+if (isMainPage && saveBtn) {
+    saveBtn.addEventListener('click', () => {
+        if (isReplaying) return;
+        showSaveOverlay();
+    });
+}
 
-// Save confirmation button functionality
-saveConfirmBtn.addEventListener('click', () => {
+// Save confirmation button functionality (only on main page)
+if (isMainPage && saveConfirmBtn) {
+    saveConfirmBtn.addEventListener('click', () => {
     if (isReplaying) return;
     
     const drawingData = {
+        id: `drawing_${Date.now()}`,
         canvas_width: CANVAS_WIDTH,
         canvas_height: CANVAS_HEIGHT,
         strokes: strokes,
+        actionHistory: [...actionHistory],
         created_at: new Date().toISOString()
     };
 
+    // Save to localStorage
+    const savedDrawings = JSON.parse(localStorage.getItem('tatepaint_drawings') || '[]');
+    savedDrawings.push(drawingData);
+    localStorage.setItem('tatepaint_drawings', JSON.stringify(savedDrawings));
+
+    // Also download as JSON file
     const dataStr = JSON.stringify(drawingData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `drawing_${Date.now()}.json`;
+    link.download = `${drawingData.id}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
@@ -697,19 +741,26 @@ saveConfirmBtn.addEventListener('click', () => {
     saveOverlay.classList.remove('show');
     
     alert('Drawing saved successfully!');
-});
+    });
+}
 
-// Replay functionality
-replayButton.addEventListener('click', async () => {
-    if (isReplaying || actionHistory.length === 0) return;
-
-    isReplaying = true;
-    replayButton.disabled = true;
-    saveBtn.disabled = true;
+// Replay functionality (exported for use in view.html)
+// Define the function and assign to window immediately
+window.replayDrawing = async function(actionHistory, targetCanvas, targetCtx, targetWidth, targetHeight) {
+    console.log('replayDrawing called with:', {
+        actionHistoryLength: actionHistory?.length,
+        canvasWidth: targetWidth,
+        canvasHeight: targetHeight
+    });
+    
+    if (!actionHistory || actionHistory.length === 0) {
+        console.warn('No action history to replay');
+        return;
+    }
 
     // Clear canvas
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    targetCtx.fillStyle = 'white';
+    targetCtx.fillRect(0, 0, targetWidth, targetHeight);
 
     // Sort actions by timestamp to ensure chronological order
     const sortedActions = [...actionHistory].sort((a, b) => a.timestamp - b.timestamp);
@@ -733,17 +784,22 @@ replayButton.addEventListener('click', async () => {
         }
     }
     
+    if (allActions.length === 0) {
+        console.warn('No actions to replay after processing');
+        return;
+    }
+    
     // Re-sort all actions (including individual stroke points) by timestamp
     allActions.sort((a, b) => a.timestamp - b.timestamp);
     
-    // Calculate time compression: condense entire timeline to exactly 10 seconds
+    // Calculate time compression: condense entire timeline to exactly 30 seconds
     const firstActionTime = allActions[0].timestamp;
     const lastActionTime = allActions[allActions.length - 1].timestamp;
     const actualDuration = lastActionTime - firstActionTime;
-    const targetDuration = 10000; // 10 seconds in milliseconds
-    const timeRatio = actualDuration > 0 ? targetDuration / actualDuration : 0;
+    const targetDuration = 30000; // 30 seconds in milliseconds
+    const timeRatio = actualDuration > 0 ? targetDuration / actualDuration : 1;
     
-    // If all actions happen at same time, distribute evenly over 10 seconds
+    // If all actions happen at same time, distribute evenly over 30 seconds
     const evenDistributionDelay = actualDuration === 0 && allActions.length > 1 
         ? targetDuration / (allActions.length - 1)
         : 0;
@@ -772,70 +828,123 @@ replayButton.addEventListener('click', async () => {
         if (action.type === 'stroke_point') {
             // Draw individual stroke point for smooth animation
             const point = action.point;
-            ctx.fillStyle = point.colour_applied;
-            ctx.fillRect(
-                point.x_coord - point.pen_size / 2,
-                point.y_coord - point.pen_size / 2,
-                point.pen_size,
-                point.pen_size
+            targetCtx.fillStyle = point.colour_applied || '#000000';
+            const size = point.pen_size || 4;
+            targetCtx.fillRect(
+                point.x_coord - size / 2,
+                point.y_coord - size / 2,
+                size,
+                size
             );
         } else {
             switch (action.type) {
                 case 'tool_change':
-                    // Apply tool change (without recording to actionHistory)
-                    currentTool = action.tool;
-                    if (action.tool === 'eraser') {
-                        isErasing = true;
-                        PEN_COLOR = '#FFFFFF';
-                    } else {
-                        isErasing = false;
-                    }
+                    // Apply tool change
                     break;
                 
                 case 'color_change':
-                    PEN_COLOR = action.color;
-                    isErasing = false;
+                    // Color changes are handled per stroke point
                     break;
                 
                 case 'brush_size_change':
-                    PEN_SIZE = action.size;
+                    // Size changes are handled per stroke point
                     break;
                 
                 case 'fill':
-                    floodFill(action.x_coord, action.y_coord, action.colour_applied);
+                    // Use a local flood fill function for the target canvas
+                    if (window.floodFillOnCanvas) {
+                        window.floodFillOnCanvas(action.x_coord, action.y_coord, action.colour_applied, targetCtx, targetWidth, targetHeight);
+                    }
                     break;
             }
         }
     }
     
-    // Ensure the animation takes exactly 10 seconds by waiting for remaining time
+    // Ensure the animation takes exactly 30 seconds by waiting for remaining time
     const elapsedTime = Date.now() - replayStartTime;
     const remainingTime = targetDuration - elapsedTime;
     if (remainingTime > 0) {
         await new Promise(resolve => setTimeout(resolve, remainingTime));
     }
+};
 
-    isReplaying = false;
-    replayButton.disabled = false;
-    saveBtn.disabled = false;
-});
-
-// Reposition overlays on window resize
-window.addEventListener('resize', () => {
-    if (currentTool === 'pen' && penOverlay.classList.contains('show')) {
-        positionOverlayForTool('pen');
-    } else if (currentTool === 'fill' && colorOverlay.classList.contains('show')) {
-        positionOverlayForTool('fill');
-    } else if (currentTool === 'eraser' && eraserOverlay.classList.contains('show')) {
-        positionOverlayForTool('eraser');
-    } else if (saveOverlay.classList.contains('show')) {
-        positionSaveOverlay();
+// Helper function for flood fill on any canvas
+function floodFillOnCanvas(startX, startY, fillColor, targetCtx, canvasWidth, canvasHeight) {
+    const imageData = targetCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+    const pixels = imageData.data;
+    
+    const startPos = (startY * canvasWidth + startX) * 4;
+    const startR = pixels[startPos];
+    const startG = pixels[startPos + 1];
+    const startB = pixels[startPos + 2];
+    
+    const fillRgb = hexToRgb(fillColor);
+    
+    // Early exit if already filled with target color
+    if (startR === fillRgb.r && startG === fillRgb.g && startB === fillRgb.b) {
+        return;
     }
-});
+    
+    // Use Uint8Array for visited tracking
+    const visited = new Uint8Array(canvasWidth * canvasHeight);
+    const getKey = (x, y) => y * canvasWidth + x;
+    
+    const stack = [[startX, startY]];
+    
+    while (stack.length > 0) {
+        const [x, y] = stack.pop();
+        
+        if (x < 0 || x >= canvasWidth || y < 0 || y >= canvasHeight) continue;
+        
+        const key = getKey(x, y);
+        if (visited[key]) continue;
+        
+        const pos = key * 4;
+        const r = pixels[pos];
+        const g = pixels[pos + 1];
+        const b = pixels[pos + 2];
+        
+        if (r !== startR || g !== startG || b !== startB) continue;
+        
+        visited[key] = 1;
+        pixels[pos] = fillRgb.r;
+        pixels[pos + 1] = fillRgb.g;
+        pixels[pos + 2] = fillRgb.b;
+        pixels[pos + 3] = 255;
+        
+        stack.push([x + 1, y]);
+        stack.push([x - 1, y]);
+        stack.push([x, y + 1]);
+        stack.push([x, y - 1]);
+    }
+    
+    targetCtx.putImageData(imageData, 0, 0);
+}
 
-// Initialize - show pen overlay by default
-showPenOverlay();
+// Export helper functions
+window.floodFillOnCanvas = floodFillOnCanvas;
+window.hexToRgb = hexToRgb;
 
-console.log('TatePaint initialized');
-console.log(`Canvas size: ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
-console.log(`Pen size: ${PEN_SIZE}px`);
+// Reposition overlays on window resize (only on main page)
+if (isMainPage) {
+    window.addEventListener('resize', () => {
+        if (currentTool === 'pen' && penOverlay && penOverlay.classList.contains('show')) {
+            positionOverlayForTool('pen');
+        } else if (currentTool === 'fill' && colorOverlay && colorOverlay.classList.contains('show')) {
+            positionOverlayForTool('fill');
+        } else if (currentTool === 'eraser' && eraserOverlay && eraserOverlay.classList.contains('show')) {
+            positionOverlayForTool('eraser');
+        } else if (saveOverlay && saveOverlay.classList.contains('show')) {
+            positionSaveOverlay();
+        }
+    });
+
+    // Initialize - show pen overlay by default
+    showPenOverlay();
+
+    console.log('TatePaint initialized');
+    console.log(`Canvas size: ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
+    console.log(`Pen size: ${PEN_SIZE}px`);
+} else {
+    console.log('TatePaint script loaded (gallery mode)');
+}

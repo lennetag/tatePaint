@@ -303,31 +303,6 @@ body {
     color: #333;
 }
 
-/* Replay Button */
-#replayButton {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 24px;
-    font-size: 16px;
-    font-weight: 600;
-    background: white;
-    border: 2px solid #333;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 100;
-}
-
-#replayButton:hover {
-    background: #333;
-    color: white;
-}
-
-#replayButton:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
@@ -372,12 +347,5 @@ body {
     .brush-size-btn {
         width: 50px;
         height: 50px;
-    }
-    
-    #replayButton {
-        bottom: 10px;
-        right: 10px;
-        padding: 10px 20px;
-        font-size: 14px;
     }
 }

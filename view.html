@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TatePaint - Gallery</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="view-styles.css">
+</head>
+<body class="gallery-body">
+    <div id="galleryContainer" class="gallery-container">
+        <!-- Drawings will be inserted here -->
+    </div>
+
+    <div class="empty-gallery" id="emptyGallery" style="display: none;">
+        <p>No drawings saved yet.</p>
+        <a href="index.html" class="paint-link">Create your first drawing →</a>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Ensure replayDrawing is available before loading view.js
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!window.replayDrawing) {
+                console.error('replayDrawing function not found in script.js');
+            } else {
+                console.log('replayDrawing function is available');
+            }
+        });
+    </script>
+    <script src="view.js"></script>
+</body>
+</html>
+
