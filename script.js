@@ -28,14 +28,121 @@ if (isMainPage) {
     brushSizeButtons = document.querySelectorAll('.brush-size-btn');
 }
 
-// Determine canvas size based on screen width
-const isMobile = window.innerWidth < 768;
-const CANVAS_WIDTH = isMobile ? 512 : 1024;
-const CANVAS_HEIGHT = 1024;
+// Canvas dimensions - will be calculated dynamically
+let CANVAS_WIDTH = 1024;
+let CANVAS_HEIGHT = 1024;
 
-if (isMainPage && canvas) {
+// Logical pixel grid sizes (powers of 2 for clean scaling)
+const GRID_SIZES = [256, 512, 1024, 2048, 4096];
+
+// Calculate optimal canvas size based on viewport
+function calculateCanvasSize() {
+    const isMobile = window.innerWidth < 769;
+    const toolbar = document.getElementById('toolbar');
+    const canvasContainer = document.getElementById('canvas-container');
+    
+    if (!canvas || !toolbar || !canvasContainer) return;
+    
+    // Get available space
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let availableWidth, availableHeight;
+    
+    if (isMobile) {
+        // Mobile: use full viewport, toolbar is inside canvas
+        availableWidth = viewportWidth;
+        availableHeight = viewportHeight;
+    } else {
+        // Desktop: account for toolbar and padding
+        const toolbarRect = toolbar.getBoundingClientRect();
+        const toolbarWidth = toolbarRect.width;
+        const padding = 4; // 2vw on each side
+        availableWidth = viewportWidth - toolbarWidth - (padding * viewportWidth / 100);
+        availableHeight = viewportHeight - (4 * viewportHeight / 100); // 4vh total padding
+    }
+    
+    // Calculate maximum square size that fits
+    const maxSquareSize = Math.min(availableWidth, availableHeight);
+    
+    // Find the closest logical grid size that fits
+    // Use a size that's at most 90% of available space to ensure it fits comfortably
+    const targetSize = maxSquareSize * 0.9;
+    let logicalSize = GRID_SIZES[0];
+    
+    for (let i = 0; i < GRID_SIZES.length; i++) {
+        if (GRID_SIZES[i] <= targetSize) {
+            logicalSize = GRID_SIZES[i];
+        } else {
+            break;
+        }
+    }
+    
+    // Ensure minimum size
+    if (logicalSize < GRID_SIZES[0]) {
+        logicalSize = GRID_SIZES[0];
+    }
+    
+    CANVAS_WIDTH = logicalSize;
+    CANVAS_HEIGHT = logicalSize;
+    
+    // Store previous dimensions to detect size change
+    const prevWidth = canvas.width;
+    const prevHeight = canvas.height;
+    const hadContent = undoStack.length > 0;
+    
+    // Update canvas dimensions
     canvas.width = CANVAS_WIDTH;
     canvas.height = CANVAS_HEIGHT;
+    
+    // Redraw canvas if we have existing state
+    if (hadContent && prevWidth > 0 && prevHeight > 0) {
+        const currentState = undoStack[undoStack.length - 1];
+        // If canvas size changed, we need to scale the image data
+        if (currentState.width !== CANVAS_WIDTH || currentState.height !== CANVAS_HEIGHT) {
+            // Create a temporary canvas to scale the image
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = currentState.width;
+            tempCanvas.height = currentState.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(currentState, 0, 0);
+            
+            // Clear and redraw scaled
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.drawImage(tempCanvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // Update undo stack with new state
+            const newImageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            undoStack[undoStack.length - 1] = newImageData;
+        } else {
+            ctx.putImageData(currentState, 0, 0);
+        }
+    } else {
+        // Initialize with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        if (!hadContent) {
+            saveCanvasState();
+        }
+    }
+}
+
+// Initialize canvas size after DOM and layout are ready
+if (isMainPage && canvas) {
+    // Wait for layout to calculate toolbar size accurately
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use requestAnimationFrame to ensure layout is calculated
+            requestAnimationFrame(() => {
+                calculateCanvasSize();
+            });
+        });
+    } else {
+        requestAnimationFrame(() => {
+            calculateCanvasSize();
+        });
+    }
 }
 
 // Drawing configuration
@@ -43,6 +150,7 @@ let PEN_SIZE = 4;
 let PEN_COLOR = '#000000';
 let isErasing = false;
 let currentTool = 'pen';
+let gridEnabled = false; // Grid snapping state
 
 // Store previous pen settings when switching to eraser
 let previousPenColor = '#000000';
@@ -63,12 +171,7 @@ let actionHistory = [];
 let undoStack = [];
 let redoStack = [];
 
-// Initialize canvas with white background (only on main page)
-if (isMainPage && ctx) {
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    saveCanvasState();
-}
+// Canvas initialization is now handled in calculateCanvasSize()
 
 // Helper function to save canvas state for undo/redo
 function saveCanvasState() {
@@ -138,12 +241,17 @@ function showEraserOverlay() {
 function positionOverlayForTool(tool) {
     const toolbar = document.getElementById('toolbar');
     const toolbarRect = toolbar.getBoundingClientRect();
+    const isMobile = window.innerWidth < 769;
     
     // Tool button positions (0-indexed)
     const toolIndex = tool === 'pen' ? 0 : tool === 'fill' ? 1 : 2; // eraser is 2
-    const buttonHeight = 60;
-    const buttonGap = 10;
-    const toolbarPadding = 15; // padding-top of toolbar
+    
+    // Get button dimensions dynamically
+    const firstButton = toolbar.querySelector('.tool-btn');
+    const buttonRect = firstButton ? firstButton.getBoundingClientRect() : null;
+    const buttonHeight = buttonRect ? buttonRect.height : 60;
+    const buttonGap = parseFloat(getComputedStyle(toolbar).gap) || 10;
+    const toolbarPadding = parseFloat(getComputedStyle(toolbar).paddingTop) || 15;
     
     // Calculate icon center position
     const iconCenterY = toolbarRect.top + toolbarPadding + (toolIndex * (buttonHeight + buttonGap)) + (buttonHeight / 2);
@@ -160,24 +268,36 @@ function positionOverlayForTool(tool) {
     
     // Get the overlay content to measure its padding
     const overlayContent = overlay.querySelector('.overlay-content');
-    const overlayPadding = 20; // padding of overlay-content
+    const overlayPadding = parseFloat(getComputedStyle(overlayContent).paddingTop) || 20;
     
-    // Calculate top row height
-    // For pen and fill: color row is first, height is 50px (color circle)
-    // For eraser: size row is first, height is 60px (brush size button)
-    let topRowHeight = 50; // color circle height
+    // Calculate top row height dynamically
+    let topRowHeight = 50; // default color circle height
     if (tool === 'eraser') {
-        topRowHeight = 60; // brush size button height
+        const firstSizeBtn = overlay.querySelector('.brush-size-btn');
+        if (firstSizeBtn) {
+            topRowHeight = firstSizeBtn.getBoundingClientRect().height;
+        } else {
+            topRowHeight = 60;
+        }
+    } else {
+        const firstColorCircle = overlay.querySelector('.color-circle');
+        if (firstColorCircle) {
+            topRowHeight = firstColorCircle.getBoundingClientRect().height;
+        }
     }
     
-    // Position overlay so top row center aligns with icon center
-    // Top row center = overlay top + padding + (topRowHeight / 2)
-    // We want: top row center = icon center
-    // So: overlay top = icon center - padding - (topRowHeight / 2)
-    const overlayTop = iconCenterY - overlayPadding - (topRowHeight / 2);
-    
-    overlay.style.top = `${overlayTop}px`;
-    overlay.style.transform = 'translateY(0)';
+    if (isMobile) {
+        // Mobile: position below toolbar, horizontally aligned
+        overlay.style.top = `${toolbarRect.bottom + 2}px`;
+        overlay.style.left = `${toolbarRect.left}px`;
+        overlay.style.transform = 'none';
+    } else {
+        // Desktop: position to the right of toolbar, vertically aligned
+        const overlayTop = iconCenterY - overlayPadding - (topRowHeight / 2);
+        overlay.style.top = `${overlayTop}px`;
+        overlay.style.left = `${toolbarRect.right + 1}px`;
+        overlay.style.transform = 'none';
+    }
 }
 
 // Position save overlay
@@ -185,21 +305,31 @@ function positionSaveOverlay() {
     const toolbar = document.getElementById('toolbar');
     const toolbarRect = toolbar.getBoundingClientRect();
     const saveBtnRect = saveBtn.getBoundingClientRect();
+    const isMobile = window.innerWidth < 769;
     
     // Calculate save button center position
     const iconCenterY = saveBtnRect.top + (saveBtnRect.height / 2);
     
     // Get the overlay content to measure its padding
-    const overlayPadding = 20; // padding of overlay-content
+    const overlayContent = saveOverlay.querySelector('.overlay-content');
+    const overlayPadding = parseFloat(getComputedStyle(overlayContent).paddingTop) || 20;
     
     // Save confirmation button height
-    const buttonHeight = 60;
+    const confirmBtn = saveOverlay.querySelector('.save-confirm-btn');
+    const buttonHeight = confirmBtn ? confirmBtn.getBoundingClientRect().height : 60;
     
-    // Position overlay so button center aligns with icon center
-    const overlayTop = iconCenterY - overlayPadding - (buttonHeight / 2);
-    
-    saveOverlay.style.top = `${overlayTop}px`;
-    saveOverlay.style.transform = 'translateY(0)';
+    if (isMobile) {
+        // Mobile: position below toolbar
+        saveOverlay.style.top = `${toolbarRect.bottom + 2}px`;
+        saveOverlay.style.left = `${toolbarRect.left}px`;
+        saveOverlay.style.transform = 'none';
+    } else {
+        // Desktop: position to the right of toolbar
+        const overlayTop = iconCenterY - overlayPadding - (buttonHeight / 2);
+        saveOverlay.style.top = `${overlayTop}px`;
+        saveOverlay.style.left = `${toolbarRect.right + 1}px`;
+        saveOverlay.style.transform = 'none';
+    }
 }
 
 function showSaveOverlay() {
@@ -249,6 +379,28 @@ if (isMainPage && toolButtons) {
             selectTool(tool);
         });
     });
+}
+
+// Toggle button functionality (only on main page)
+if (isMainPage) {
+    const toggleBtn = document.getElementById('toggleBtn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            if (isReplaying) return;
+            
+            const currentState = toggleBtn.getAttribute('data-state');
+            const newState = currentState === 'on' ? 'off' : 'on';
+            toggleBtn.setAttribute('data-state', newState);
+            
+            // Update grid enabled state
+            gridEnabled = newState === 'on';
+            
+            // Close any open overlays when toggling
+            closeAllOverlays();
+            
+            console.log(`Grid snapping is now: ${gridEnabled ? 'enabled' : 'disabled'}`);
+        });
+    }
 }
 
 function selectTool(tool) {
@@ -473,6 +625,20 @@ if (isMainPage && canvas && cursorPreview) {
     });
 }
 
+// Grid snapping function - snaps coordinates to grid subdivisions based on PEN_SIZE
+function snapToGrid(x, y) {
+    if (!gridEnabled) {
+        return { x, y };
+    }
+    // Grid cell size equals PEN_SIZE
+    const gridSize = PEN_SIZE;
+    // Snap to top-left corner of the grid cell containing the point
+    // Use Math.floor to always snap to the cell that contains the click
+    const snappedX = Math.floor(x / gridSize) * gridSize;
+    const snappedY = Math.floor(y / gridSize) * gridSize;
+    return { x: snappedX, y: snappedY };
+}
+
 // Helper function to interpolate points between two coordinates
 function interpolatePoints(x0, y0, x1, y1) {
     const points = [];
@@ -512,8 +678,13 @@ function startDrawing(e) {
     closeAllOverlays();
     
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(e.clientX - rect.left);
-    const y = Math.floor(e.clientY - rect.top);
+    let x = Math.floor(e.clientX - rect.left);
+    let y = Math.floor(e.clientY - rect.top);
+    
+    // Apply grid snapping if enabled
+    const snapped = snapToGrid(x, y);
+    x = snapped.x;
+    y = snapped.y;
     
     if (currentTool === 'fill') {
         // Record fill action
@@ -531,7 +702,28 @@ function startDrawing(e) {
         currentStroke = [];
         lastX = x;
         lastY = y;
-        draw(e);
+        
+        // When grid is enabled, draw immediately on click
+        if (gridEnabled) {
+            const strokeData = {
+                timestamp: Date.now(),
+                x_coord: x,
+                y_coord: y,
+                pen_size: PEN_SIZE,
+                colour_applied: PEN_COLOR,
+                is_erasing: isErasing,
+                tool: currentTool === 'eraser' ? 'eraser' : 'pen'
+            };
+
+            currentStroke.push(strokeData);
+
+            ctx.fillStyle = PEN_COLOR;
+            // Fill the entire grid cell
+            ctx.fillRect(x, y, PEN_SIZE, PEN_SIZE);
+        } else {
+            // Normal drawing - call draw() which will interpolate
+            draw(e);
+        }
     }
 }
 
@@ -554,30 +746,61 @@ function draw(e) {
     if (!isDrawing || (currentTool !== 'pen' && currentTool !== 'eraser')) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor(e.clientX - rect.left);
-    const y = Math.floor(e.clientY - rect.top);
+    let x = Math.floor(e.clientX - rect.left);
+    let y = Math.floor(e.clientY - rect.top);
+    
+    // Apply grid snapping if enabled
+    const snapped = snapToGrid(x, y);
+    x = snapped.x;
+    y = snapped.y;
+    
+    // When grid is enabled, draw at grid intersections only (no interpolation needed)
+    if (gridEnabled) {
+        // Only draw if we've moved to a new grid cell
+        if (x !== lastX || y !== lastY) {
+            const strokeData = {
+                timestamp: Date.now(),
+                x_coord: x,
+                y_coord: y,
+                pen_size: PEN_SIZE,
+                colour_applied: PEN_COLOR,
+                is_erasing: isErasing,
+                tool: currentTool === 'eraser' ? 'eraser' : 'pen'
+            };
 
-    const points = interpolatePoints(lastX, lastY, x, y);
+            currentStroke.push(strokeData);
 
-    points.forEach(point => {
-        const strokeData = {
-            timestamp: Date.now(),
-            x_coord: point.x,
-            y_coord: point.y,
-            pen_size: PEN_SIZE,
-            colour_applied: PEN_COLOR,
-            is_erasing: isErasing,
-            tool: currentTool === 'eraser' ? 'eraser' : 'pen'
-        };
+            ctx.fillStyle = PEN_COLOR;
+            // When grid is enabled, fill the entire grid cell
+            ctx.fillRect(x, y, PEN_SIZE, PEN_SIZE);
+            
+            lastX = x;
+            lastY = y;
+        }
+    } else {
+        // Normal drawing with interpolation when grid is off
+        const points = interpolatePoints(lastX, lastY, x, y);
 
-        currentStroke.push(strokeData);
+        points.forEach(point => {
+            const strokeData = {
+                timestamp: Date.now(),
+                x_coord: point.x,
+                y_coord: point.y,
+                pen_size: PEN_SIZE,
+                colour_applied: PEN_COLOR,
+                is_erasing: isErasing,
+                tool: currentTool === 'eraser' ? 'eraser' : 'pen'
+            };
 
-        ctx.fillStyle = PEN_COLOR;
-        ctx.fillRect(point.x - PEN_SIZE / 2, point.y - PEN_SIZE / 2, PEN_SIZE, PEN_SIZE);
-    });
+            currentStroke.push(strokeData);
 
-    lastX = x;
-    lastY = y;
+            ctx.fillStyle = PEN_COLOR;
+            ctx.fillRect(point.x - PEN_SIZE / 2, point.y - PEN_SIZE / 2, PEN_SIZE, PEN_SIZE);
+        });
+
+        lastX = x;
+        lastY = y;
+    }
 }
 
 // Mouse events (only on main page)
@@ -592,8 +815,12 @@ if (isMainPage && canvas) {
         e.preventDefault();
         const touch = e.touches[0];
         const rect = canvas.getBoundingClientRect();
-        lastX = Math.floor(touch.clientX - rect.left);
-        lastY = Math.floor(touch.clientY - rect.top);
+        let x = Math.floor(touch.clientX - rect.left);
+        let y = Math.floor(touch.clientY - rect.top);
+        // Apply grid snapping if enabled
+        const snapped = snapToGrid(x, y);
+        lastX = snapped.x;
+        lastY = snapped.y;
         const mouseEvent = new MouseEvent('mousedown', {
             clientX: touch.clientX,
             clientY: touch.clientY
@@ -925,18 +1152,27 @@ function floodFillOnCanvas(startX, startY, fillColor, targetCtx, canvasWidth, ca
 window.floodFillOnCanvas = floodFillOnCanvas;
 window.hexToRgb = hexToRgb;
 
-// Reposition overlays on window resize (only on main page)
+// Reposition overlays and recalculate canvas on window resize (only on main page)
 if (isMainPage) {
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        if (currentTool === 'pen' && penOverlay && penOverlay.classList.contains('show')) {
-            positionOverlayForTool('pen');
-        } else if (currentTool === 'fill' && colorOverlay && colorOverlay.classList.contains('show')) {
-            positionOverlayForTool('fill');
-        } else if (currentTool === 'eraser' && eraserOverlay && eraserOverlay.classList.contains('show')) {
-            positionOverlayForTool('eraser');
-        } else if (saveOverlay && saveOverlay.classList.contains('show')) {
-            positionSaveOverlay();
-        }
+        // Debounce resize events
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Recalculate canvas size
+            calculateCanvasSize();
+            
+            // Reposition overlays if they're visible
+            if (currentTool === 'pen' && penOverlay && penOverlay.classList.contains('show')) {
+                positionOverlayForTool('pen');
+            } else if (currentTool === 'fill' && colorOverlay && colorOverlay.classList.contains('show')) {
+                positionOverlayForTool('fill');
+            } else if (currentTool === 'eraser' && eraserOverlay && eraserOverlay.classList.contains('show')) {
+                positionOverlayForTool('eraser');
+            } else if (saveOverlay && saveOverlay.classList.contains('show')) {
+                positionSaveOverlay();
+            }
+        }, 100);
     });
 
     // Initialize - show pen overlay by default

@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Main Toolbar -->
-    <div id="toolbar" class="toolbar">
+    <div id="app-container" class="app-container">
+        <!-- Main Toolbar -->
+        <div id="toolbar" class="toolbar">
         <!-- Tools Section -->
         <div class="toolbar-section">
             <button class="tool-btn selected" data-tool="pen" title="Pen Tool">
@@ -24,6 +25,12 @@
             <button class="tool-btn" data-tool="eraser" title="Eraser">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l9.19-9.19c.79-.78 2.05-.78 2.84 0zM4.22 15.58l2.83 2.83c.39.39 1.02.39 1.41 0l9.19-9.19c.39-.39.39-1.02 0-1.41l-2.83-2.83c-.39-.39-1.02-.39-1.41 0L4.22 14.17c-.39.39-.39 1.02 0 1.41zM3 21h18v2H3v-2z"/>
+                </svg>
+            </button>
+            <button class="tool-btn toggle-btn" id="toggleBtn" title="Grid Snap" data-state="off">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3h18v18H3z"/>
+                    <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
                 </svg>
             </button>
         </div>
@@ -121,9 +128,12 @@
         </div>
     </div>
     
-    <canvas id="canvas"></canvas>
+    <div id="canvas-container" class="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+    </div>
     <div id="cursorPreview"></div>
 
-    <script src="script.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
